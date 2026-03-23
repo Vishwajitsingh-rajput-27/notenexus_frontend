@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { motion, useInView } from 'framer-motion'
 import Link from 'next/link'
-import { useAuthStore } from '@/lib/store'
+import { useAuthStore, useThemeStore } from '@/lib/store'
 import { useRouter } from 'next/navigation'
 
 // ── Data (from codebase only) ─────────────────────────────────────────────────
