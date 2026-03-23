@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import Cookies from 'js-cookie';
 import { apiGetNotes, apiGetNote } from '@/lib/api';
 
-const API = process.env.NEXT_PUBLIC_API_URL;
+const API = 'https://notenexus-backend-y20v.onrender.com';
 const mono = "'Space Mono','Courier New',monospace";
 const ibm  = "'IBM Plex Mono','Courier New',monospace";
 const srcIcon = (t:string) => t==='pdf'?'PDF':t==='image'?'IMG':t==='voice'?'MIC':t==='youtube'?'YT':'TXT';
