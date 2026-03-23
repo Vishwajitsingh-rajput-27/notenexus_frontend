@@ -5,7 +5,7 @@ import toast from 'react-hot-toast'
 import { useAuthStore } from '@/lib/store'
 // apiMe available if needed
 
-const API = process.env.NEXT_PUBLIC_API_URL
+const API = 'https://notenexus-backend-y20v.onrender.com';
 const mono = "'Space Mono','Courier New',monospace"
 const ibm  = "'IBM Plex Mono','Courier New',monospace"
 const srcIcon = (t:string) => t==='pdf'?'PDF':t==='image'?'IMG':t==='voice'?'MIC':t==='youtube'?'YT':'TXT'
