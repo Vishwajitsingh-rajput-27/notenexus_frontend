@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 
-const API = process.env.NEXT_PUBLIC_API_URL;
+const API = 'https://notenexus-backend-y20v.onrender.com';
 const mono = "'Space Mono','Courier New',monospace";
 const ibm  = "'IBM Plex Mono','Courier New',monospace";
 
