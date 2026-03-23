@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Cookies from 'js-cookie';
 import { apiGetNotes } from '@/lib/api';
 
-const API = process.env.NEXT_PUBLIC_API_URL;
+const API = 'https://notenexus-backend-y20v.onrender.com';
 const LEVELS = ['beginner', 'intermediate', 'advanced'];
 const SUGGESTED = ['Explain this topic from scratch', "Give me an example", "I don't understand", 'Quiz me', "Summarise what we've covered"];
 const mono = "'Space Mono','Courier New',monospace";
