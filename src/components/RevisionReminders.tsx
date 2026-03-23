@@ -8,6 +8,13 @@ const API = 'https://notenexus-backend-y20v.onrender.com';
 const mono = "'Space Mono','Courier New',monospace";
 const ibm  = "'IBM Plex Mono','Courier New',monospace";
 const PRESET_INTERVALS = [1, 3, 7, 14, 30];
+const TIME_PRESETS = [
+  { label: 'DAWN',    value: '06:00', icon: '🌅' },
+  { label: 'MORNING', value: '09:00', icon: '☀️' },
+  { label: 'NOON',    value: '12:00', icon: '🌤' },
+  { label: 'EVENING', value: '18:00', icon: '🌇' },
+  { label: 'NIGHT',   value: '21:00', icon: '🌙' },
+];
 const srcIcon = (t:string) => t==='pdf'?'PDF':t==='image'?'IMG':t==='voice'?'MIC':t==='youtube'?'YT':'TXT';
 
 export default function RevisionReminders() {
@@ -19,6 +26,7 @@ export default function RevisionReminders() {
   const [customInterval, setCustomInterval] = useState('');
   const [useCustomInterval, setUseCustomInterval] = useState(false);
   const [reminderTime, setReminderTime] = useState('09:00');
+  const [useCustomTime, setUseCustomTime] = useState(false);
   const [loading, setLoading]           = useState(false);
   const [fetching, setFetching]         = useState(true);
   const [error, setError]               = useState('');
@@ -159,22 +167,47 @@ export default function RevisionReminders() {
 
         {/* Reminder Time */}
         <div>
-          <div style={{ fontFamily:mono, fontSize:9, color:'rgba(255,255,255,0.35)', letterSpacing:'0.12em', marginBottom:8 }}>// REMINDER_TIME</div>
-          <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-            <input
-              type="time"
-              value={reminderTime}
-              onChange={e => setReminderTime(e.target.value)}
-              style={{ ...inp, width:'auto', flex:1, colorScheme:'dark', cursor:'pointer' }}
-              onFocus={e=>e.currentTarget.style.borderColor='#FBFF48'}
-              onBlur={e=>e.currentTarget.style.borderColor='rgba(255,255,255,0.12)'}
-            />
-            <div style={{ fontFamily:mono, fontSize:10, color:'#FBFF48', letterSpacing:'0.08em', whiteSpace:'nowrap', padding:'10px 14px', border:'1px solid rgba(251,255,72,0.2)', background:'rgba(251,255,72,0.04)' }}>
-              {formatTime(reminderTime)}
-            </div>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}>
+            <div style={{ fontFamily:mono, fontSize:9, color:'rgba(255,255,255,0.35)', letterSpacing:'0.12em' }}>// REMINDER_TIME</div>
+            <button
+              onClick={() => setUseCustomTime(v => !v)}
+              style={{ fontFamily:mono, fontSize:9, letterSpacing:'0.08em', padding:'3px 8px', border:`1px solid ${useCustomTime ? '#FBFF48' : 'rgba(255,255,255,0.12)'}`, color: useCustomTime ? '#FBFF48' : 'rgba(255,255,255,0.35)', background:'none', cursor:'pointer' }}>
+              {useCustomTime ? 'USE_PRESETS' : 'CUSTOM_TIME'}
+            </button>
           </div>
+
+          {!useCustomTime ? (
+            <div style={{ display:'flex', gap:6 }}>
+              {TIME_PRESETS.map(preset => {
+                const active = reminderTime === preset.value;
+                return (
+                  <button key={preset.value} onClick={() => setReminderTime(preset.value)}
+                    style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:4, padding:'8px 4px', background: active ? 'rgba(251,255,72,0.1)' : 'transparent', border:`1px solid ${active ? '#FBFF48' : 'rgba(255,255,255,0.1)'}`, cursor:'pointer' }}>
+                    <span style={{ fontSize:14 }}>{preset.icon}</span>
+                    <span style={{ fontFamily:mono, fontSize:8, color: active ? '#FBFF48' : 'rgba(255,255,255,0.35)' }}>{preset.label}</span>
+                    <span style={{ fontFamily:ibm, fontSize:9, color: active ? '#FBFF48' : 'rgba(255,255,255,0.25)' }}>{formatTime(preset.value)}</span>
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+              <input
+                type="time"
+                value={reminderTime}
+                onChange={e => setReminderTime(e.target.value)}
+                style={{ ...inp, width:'auto', flex:1, colorScheme:'dark', cursor:'pointer' }}
+                onFocus={e=>e.currentTarget.style.borderColor='#FBFF48'}
+                onBlur={e=>e.currentTarget.style.borderColor='rgba(255,255,255,0.12)'}
+              />
+              <div style={{ fontFamily:mono, fontSize:10, color:'#FBFF48', letterSpacing:'0.08em', whiteSpace:'nowrap', padding:'10px 14px', border:'1px solid rgba(251,255,72,0.2)', background:'rgba(251,255,72,0.04)' }}>
+                {formatTime(reminderTime)}
+              </div>
+            </div>
+          )}
+
           <div style={{ fontFamily:mono, fontSize:9, color:'rgba(255,255,255,0.2)', marginTop:5, letterSpacing:'0.06em' }}>
-            Email will arrive at this time each interval
+            Email arrives at <span style={{ color:'#FBFF48' }}>{formatTime(reminderTime)}</span>
           </div>
         </div>
 
@@ -200,6 +233,34 @@ export default function RevisionReminders() {
             </div>
           ) : (
             <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+              ) : (
+            <div>
+              <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+                <input
+                  type="number"
+                  min={1}
+                  max={365}
+                  value={customInterval}
+                  onChange={e => setCustomInterval(e.target.value)}
+                  placeholder="e.g. 5"
+                  style={{ ...inp, flex:1 }}
+                  onFocus={e=>e.currentTarget.style.borderColor='#FBFF48'}
+                  onBlur={e=>e.currentTarget.style.borderColor='rgba(255,255,255,0.12)'}
+                />
+                <div style={{ fontFamily:mono, fontSize:10, color:'rgba(255,255,255,0.4)', whiteSpace:'nowrap', padding:'10px 14px', border:'1px solid rgba(255,255,255,0.08)' }}>
+                  DAYS
+                </div>
+              </div>
+              <div style={{ display:'flex', gap:6, marginTop:8, flexWrap:'wrap' }}>
+                {[2, 5, 10, 21, 45, 60, 90].map(d => (
+                  <button key={d} onClick={() => setCustomInterval(String(d))}
+                    style={{ fontFamily:mono, fontSize:8, padding:'4px 8px', background: customInterval === String(d) ? 'rgba(251,255,72,0.12)' : 'transparent', color: customInterval === String(d) ? '#FBFF48' : 'rgba(255,255,255,0.3)', border:`1px solid ${customInterval === String(d) ? 'rgba(251,255,72,0.4)' : 'rgba(255,255,255,0.08)'}`, cursor:'pointer' }}>
+                    {d}d
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
               <input
                 type="number"
                 min={1}
