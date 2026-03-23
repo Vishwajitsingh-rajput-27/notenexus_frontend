@@ -1,7 +1,7 @@
 'use client'
 import { useState, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useAuthStore } from '@/lib/store'
+import { useAuthStore, useThemeStore } from '@/lib/store'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import UploadNote        from '@/components/notes/UploadNote'
@@ -21,6 +21,34 @@ import WhatsAppBot       from '@/components/WhatsAppBot'
 const mono = "'Space Mono','Courier New',monospace"
 const ibm  = "'IBM Plex Mono','Courier New',monospace"
 
+// ── Theme token objects ───────────────────────────────────────────────────────
+const DARK_T = {
+  bg:        '#0a0a0a',
+  sidebar:   '#0d0d0d',
+  topbar:    'rgba(10,10,10,0.95)',
+  border:    'rgba(255,255,255,0.07)',
+  borderSub: 'rgba(255,255,255,0.06)',
+  fg:        '#ffffff',
+  fgDim:     'rgba(255,255,255,0.3)',
+  togBg:     '#1c1c1c',
+  togBorder: 'rgba(255,255,255,0.12)',
+  scrollbar: 'rgba(255,255,255,0.12)',
+}
+
+const LIGHT_T = {
+  bg:        '#f0ede6',
+  sidebar:   '#e8e4dc',
+  topbar:    'rgba(240,237,230,0.97)',
+  border:    'rgba(0,0,0,0.10)',
+  borderSub: 'rgba(0,0,0,0.07)',
+  fg:        '#0a0a0a',
+  fgDim:     'rgba(10,10,10,0.4)',
+  togBg:     '#dedad2',
+  togBorder: 'rgba(0,0,0,0.15)',
+  scrollbar: 'rgba(0,0,0,0.15)',
+}
+
+// ── Tab definitions ───────────────────────────────────────────────────────────
 const TABS = [
   { id: 'upload',     label: 'UPLOAD',       tag: 'notes'    },
   { id: 'notes',      label: 'MY_NOTES',     tag: 'notes'    },
@@ -45,13 +73,18 @@ const TAG_COLORS: Record<string, string> = {
   account:  'rgba(255,255,255,0.4)',
 }
 
+// ── Component ─────────────────────────────────────────────────────────────────
 export default function DashboardPage() {
-  const [tab, setTab] = useState('upload')
+  const [tab, setTab]               = useState('upload')
   const [sidebarOpen, setSidebarOpen] = useState(true)
-  const { user, logout } = useAuthStore()
-  const router = useRouter()
-  const socket = useSocket()
-  const [activeNote, setActiveNote] = useState<{ content: string; subject: string; title: string } | null>(null)
+  const { user, logout }            = useAuthStore()
+  const { dark, setDark }           = useThemeStore()   // ← theme
+  const tok                         = dark ? DARK_T : LIGHT_T
+  const router                      = useRouter()
+  const socket                      = useSocket()
+  const [activeNote, setActiveNote] = useState<{
+    content: string; subject: string; title: string
+  } | null>(null)
 
   useEffect(() => {
     if (!socket) return
@@ -80,99 +113,204 @@ export default function DashboardPage() {
 
   return (
     <>
+      {/* ── Global styles (theme-aware) ── */}
       <style>{`
         * { box-sizing: border-box; }
-        body { margin: 0; background: #0a0a0a; color: #fff; font-family: ${ibm}; }
+        body {
+          margin: 0;
+          background: ${tok.bg};
+          color: ${tok.fg};
+          font-family: ${ibm};
+          transition: background 0.4s, color 0.4s;
+        }
         ::selection { background: #FBFF48; color: #000; }
         ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-track { background: #0a0a0a; }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); }
+        ::-webkit-scrollbar-track { background: ${tok.bg}; }
+        ::-webkit-scrollbar-thumb { background: ${tok.scrollbar}; border-radius: 2px; }
         input, textarea, select { font-family: ${ibm} !important; }
       `}</style>
 
-      <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: '#0a0a0a' }}>
+      <div style={{
+        display: 'flex',
+        height: '100vh',
+        overflow: 'hidden',
+        background: tok.bg,
+        color: tok.fg,
+        transition: 'background 0.4s, color 0.4s',
+      }}>
 
-        {/* ── SIDEBAR ── */}
+        {/* ══════════════════════════════════════════════
+            SIDEBAR
+        ══════════════════════════════════════════════ */}
         <aside style={{
           width: sidebarOpen ? 220 : 56,
-          background: '#0d0d0d',
-          borderRight: '1px solid rgba(255,255,255,0.07)',
-          display: 'flex', flexDirection: 'column',
-          transition: 'width 0.25s ease',
-          flexShrink: 0, overflow: 'hidden',
+          background: tok.sidebar,
+          borderRight: `1px solid ${tok.border}`,
+          display: 'flex',
+          flexDirection: 'column',
+          transition: 'width 0.25s ease, background 0.4s, border-color 0.4s',
+          flexShrink: 0,
+          overflow: 'hidden',
         }}>
 
           {/* Logo row */}
-          <div style={{ padding: '18px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-            <span style={{ fontFamily: mono, fontSize: 13, fontWeight: 700, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden' }}>
-              {sidebarOpen ? <>NN<span style={{ color: '#FBFF48' }}>.exe</span></> : <span style={{ color: '#FBFF48' }}>N</span>}
+          <div style={{
+            padding: '18px 16px',
+            borderBottom: `1px solid ${tok.borderSub}`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 8,
+            transition: 'border-color 0.4s',
+          }}>
+            <span style={{
+              fontFamily: mono,
+              fontSize: 13,
+              fontWeight: 700,
+              color: tok.fg,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              transition: 'color 0.4s',
+            }}>
+              {sidebarOpen
+                ? <>NN<span style={{ color: '#FBFF48' }}>.exe</span></>
+                : <span style={{ color: '#FBFF48' }}>N</span>
+              }
             </span>
             <button
               onClick={() => setSidebarOpen(o => !o)}
-              style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', fontFamily: mono, fontSize: 12, padding: '2px 4px', flexShrink: 0 }}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: tok.fgDim,
+                fontFamily: mono,
+                fontSize: 12,
+                padding: '2px 4px',
+                flexShrink: 0,
+                cursor: 'pointer',
+                transition: 'color 0.4s',
+              }}
             >
               {sidebarOpen ? '←' : '→'}
             </button>
           </div>
 
-          {/* Nav items grouped by tag */}
+          {/* Nav items */}
           <nav style={{ flex: 1, overflowY: 'auto', padding: '12px 8px' }}>
             {TABS.map(t => {
               const isActive = tab === t.id
-              const color = TAG_COLORS[t.tag]
+              const dotColor = TAG_COLORS[t.tag]
               return (
                 <button
                   key={t.id}
                   onClick={() => setTab(t.id)}
                   title={t.label}
                   style={{
-                    width: '100%', display: 'flex', alignItems: 'center', gap: 10,
-                    padding: '8px 10px', marginBottom: 2,
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    padding: '8px 10px',
+                    marginBottom: 2,
                     background: isActive ? 'rgba(251,255,72,0.07)' : 'transparent',
-                    border: isActive ? `1px solid rgba(251,255,72,0.2)` : '1px solid transparent',
-                    color: isActive ? '#fff' : 'rgba(255,255,255,0.4)',
-                    fontFamily: mono, fontSize: 10, fontWeight: 700,
-                    letterSpacing: '0.08em', textAlign: 'left',
+                    border: isActive
+                      ? '1px solid rgba(251,255,72,0.2)'
+                      : '1px solid transparent',
+                    color: isActive ? tok.fg : tok.fgDim,
+                    fontFamily: mono,
+                    fontSize: 10,
+                    fontWeight: 700,
+                    letterSpacing: '0.08em',
+                    textAlign: 'left',
                     transition: 'background 0.15s, color 0.15s, border-color 0.15s',
-                    whiteSpace: 'nowrap', overflow: 'hidden',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
                     cursor: 'pointer',
                   }}
-                  onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.color = '#fff' }}
-                  onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.4)' }}
+                  onMouseEnter={e => {
+                    if (!isActive)
+                      (e.currentTarget as HTMLElement).style.color = tok.fg
+                  }}
+                  onMouseLeave={e => {
+                    if (!isActive)
+                      (e.currentTarget as HTMLElement).style.color = tok.fgDim
+                  }}
                 >
-                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: color, flexShrink: 0 }} />
-                  {sidebarOpen && <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.label}</span>}
+                  <span style={{
+                    width: 6, height: 6,
+                    borderRadius: '50%',
+                    background: dotColor,
+                    flexShrink: 0,
+                  }} />
+                  {sidebarOpen && (
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {t.label}
+                    </span>
+                  )}
                 </button>
               )
             })}
           </nav>
 
           {/* User row */}
-          <div style={{ padding: '12px 8px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+          <div style={{
+            padding: '12px 8px',
+            borderTop: `1px solid ${tok.borderSub}`,
+            transition: 'border-color 0.4s',
+          }}>
             {sidebarOpen && (
               <div style={{ padding: '8px 10px', marginBottom: 4 }}>
-                <div style={{ fontFamily: mono, fontSize: 10, color: '#FBFF48', marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <div style={{
+                  fontFamily: mono,
+                  fontSize: 10,
+                  color: '#FBFF48',
+                  marginBottom: 2,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}>
                   {user?.name?.toUpperCase()}
                 </div>
-                <div style={{ fontFamily: ibm, fontSize: 10, color: 'rgba(255,255,255,0.3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <div style={{
+                  fontFamily: ibm,
+                  fontSize: 10,
+                  color: tok.fgDim,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  transition: 'color 0.4s',
+                }}>
                   {user?.email}
                 </div>
               </div>
             )}
+
             <button
               onClick={handleLogout}
               title="Sign out"
               style={{
-                width: '100%', display: 'flex', alignItems: 'center', gap: 8,
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
                 padding: '8px 10px',
-                background: 'transparent', border: '1px solid transparent',
-                color: 'rgba(255,255,255,0.3)',
-                fontFamily: mono, fontSize: 10, letterSpacing: '0.08em',
+                background: 'transparent',
+                border: '1px solid transparent',
+                color: tok.fgDim,
+                fontFamily: mono,
+                fontSize: 10,
+                letterSpacing: '0.08em',
                 transition: 'color 0.15s, border-color 0.15s',
                 cursor: 'pointer',
               }}
-              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = '#FF3B3B'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,59,59,0.2)' }}
-              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.3)'; (e.currentTarget as HTMLElement).style.borderColor = 'transparent' }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLElement).style.color = '#FF3B3B'
+                ;(e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,59,59,0.2)'
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLElement).style.color = tok.fgDim
+                ;(e.currentTarget as HTMLElement).style.borderColor = 'transparent'
+              }}
             >
               <span>⏻</span>
               {sidebarOpen && 'SIGN_OUT'}
@@ -180,28 +318,63 @@ export default function DashboardPage() {
           </div>
         </aside>
 
-        {/* ── MAIN ── */}
-        <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        {/* ══════════════════════════════════════════════
+            MAIN AREA
+        ══════════════════════════════════════════════ */}
+        <main style={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+        }}>
 
-          {/* Top bar */}
+          {/* ── Top bar ── */}
           <div style={{
-            background: 'rgba(10,10,10,0.95)',
-            borderBottom: '1px solid rgba(255,255,255,0.07)',
-            padding: '0 24px', height: 52,
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            background: tok.topbar,
+            borderBottom: `1px solid ${tok.border}`,
+            padding: '0 24px',
+            height: 52,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
             flexShrink: 0,
+            transition: 'background 0.4s, border-color 0.4s',
           }}>
+
+            {/* Left: current tab label */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <span style={{ fontFamily: mono, fontSize: 11, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.1em' }}>{'>'}</span>
-              <span style={{ fontFamily: mono, fontSize: 13, fontWeight: 700, letterSpacing: '0.06em' }}>
+              <span style={{
+                fontFamily: mono,
+                fontSize: 11,
+                color: tok.fgDim,
+                letterSpacing: '0.1em',
+                transition: 'color 0.4s',
+              }}>{'>'}</span>
+
+              <span style={{
+                fontFamily: mono,
+                fontSize: 13,
+                fontWeight: 700,
+                letterSpacing: '0.06em',
+                color: tok.fg,
+                transition: 'color 0.4s',
+              }}>
                 {currentTab.label}
               </span>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: TAG_COLORS[currentTab.tag] }} />
+
+              <span style={{
+                width: 6, height: 6,
+                borderRadius: '50%',
+                background: TAG_COLORS[currentTab.tag],
+              }} />
+
               {activeNote && ['exam','planner','tutor','flashcards','mindmap'].includes(tab) && (
                 <span style={{
-                  fontFamily: ibm, fontSize: 10,
+                  fontFamily: ibm,
+                  fontSize: 10,
                   border: '1px solid rgba(251,255,72,0.25)',
-                  color: '#FBFF48', padding: '3px 10px',
+                  color: '#FBFF48',
+                  padding: '3px 10px',
                   letterSpacing: '0.06em',
                 }}>
                   {activeNote.title}
@@ -209,19 +382,81 @@ export default function DashboardPage() {
               )}
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <span style={{ fontFamily: ibm, fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>
+            {/* Right: theme toggle + user + live indicator */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+
+              {/* ── DARK / LIGHT TOGGLE ── */}
+              <div style={{
+                display: 'flex',
+                background: tok.togBg,
+                border: `1px solid ${tok.togBorder}`,
+                padding: 2,
+                gap: 2,
+                transition: 'background 0.4s, border-color 0.4s',
+              }}>
+                {(['dark', 'light'] as const).map(mode => (
+                  <button
+                    key={mode}
+                    onClick={() => setDark(mode === 'dark')}
+                    style={{
+                      fontFamily: mono,
+                      fontSize: 9,
+                      fontWeight: 700,
+                      letterSpacing: '0.06em',
+                      padding: '4px 9px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      background: (dark ? 'dark' : 'light') === mode
+                        ? '#FBFF48'
+                        : 'transparent',
+                      color: (dark ? 'dark' : 'light') === mode
+                        ? '#000'
+                        : tok.fgDim,
+                      transition: 'background 0.25s, color 0.25s',
+                    }}
+                  >
+                    {mode === 'dark' ? '◐ DARK' : '○ LIGHT'}
+                  </button>
+                ))}
+              </div>
+
+              {/* Username */}
+              <span style={{
+                fontFamily: ibm,
+                fontSize: 11,
+                color: tok.fgDim,
+                transition: 'color 0.4s',
+              }}>
                 {user?.name?.split(' ')[0].toUpperCase()}
               </span>
+
+              {/* Live indicator */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#4ADE80', boxShadow: '0 0 6px #4ADE80' }} />
-                <span style={{ fontFamily: mono, fontSize: 9, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.1em' }}>LIVE</span>
+                <span style={{
+                  width: 6, height: 6,
+                  borderRadius: '50%',
+                  background: '#4ADE80',
+                  boxShadow: '0 0 6px #4ADE80',
+                }} />
+                <span style={{
+                  fontFamily: mono,
+                  fontSize: 9,
+                  color: tok.fgDim,
+                  letterSpacing: '0.1em',
+                  transition: 'color 0.4s',
+                }}>LIVE</span>
               </div>
             </div>
           </div>
 
-          {/* Content area */}
-          <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
+          {/* ── Content area ── */}
+          <div style={{
+            flex: 1,
+            overflowY: 'auto',
+            padding: '24px',
+            background: tok.bg,
+            transition: 'background 0.4s',
+          }}>
             <div style={{ maxWidth: 900, margin: '0 auto' }}>
               <AnimatePresence mode="wait">
                 <motion.div
@@ -247,8 +482,9 @@ export default function DashboardPage() {
               </AnimatePresence>
             </div>
           </div>
+
         </main>
       </div>
     </>
   )
-}
+                  }
