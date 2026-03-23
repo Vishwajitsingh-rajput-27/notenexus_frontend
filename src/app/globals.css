@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── RESET ALL OLD STYLES ── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* ── BRUTALIST BASE ── */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: #0a0a0a;
+  color: #ffffff;
+  font-family: 'IBM Plex Mono', 'Courier New', monospace;
+  overflow-x: hidden;
+}
+
+/* light mode body override */
+body.light {
+  background: #f0ede6;
+  color: #0a0a0a;
+}
+
+::selection {
+  background: #FBFF48;
+  color: #000;
+}
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: #0a0a0a; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+
+body.light::-webkit-scrollbar-track { background: #f0ede6; }
+body.light::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); }
+
+/* ── CARD FLIP (keep existing dashboard logic) ── */
+.flip-card { perspective: 1000px; }
+.flip-inner { transition: transform 0.5s; transform-style: preserve-3d; position: relative; }
+.flip-inner.flipped { transform: rotateY(180deg); }
+.flip-front, .flip-back { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.flip-back { transform: rotateY(180deg); position: absolute; inset: 0; }
+
+/* Flip card styles for Flashcards component */
+.flip-card { perspective: 1000px; }
+.flip-inner { position: relative; transition: transform 0.5s; transform-style: preserve-3d; }
+.flip-inner.flipped { transform: rotateY(180deg); }
+.flip-front, .flip-back {
+  position: absolute; top: 0; left: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.flip-back { transform: rotateY(180deg); }
