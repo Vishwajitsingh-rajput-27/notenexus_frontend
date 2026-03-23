@@ -2,6 +2,25 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import Cookies from 'js-cookie'
 
+// ── Theme Store ───────────────────────────────────────────────────────────────
+interface ThemeState {
+  dark: boolean
+  setDark: (dark: boolean) => void
+  toggle: () => void
+}
+
+export const useThemeStore = create<ThemeState>()(
+  persist(
+    (set, get) => ({
+      dark: true,
+      setDark: (dark) => set({ dark }),
+      toggle: () => set({ dark: !get().dark }),
+    }),
+    { name: 'nn-theme' }
+  )
+)
+
+// ── Auth Store ────────────────────────────────────────────────────────────────
 interface User {
   _id: string
   name: string
