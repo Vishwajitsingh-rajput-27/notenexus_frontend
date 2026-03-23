@@ -294,23 +294,17 @@ function Cursor() {
 export default function HomePage() {
   const { isAuthenticated } = useAuthStore()
   const router = useRouter()
-  const [dark, setDark] = useState(true)
+  const { dark, setDark } = useThemeStore()
+
+  const toggle = useCallback((mode: 'dark' | 'light') => {
+    setDark(mode === 'dark')
+  }, [setDark])
+
   const tok = dark ? DARK : LIGHT
 
   // Auth redirect
   useEffect(() => {
     if (isAuthenticated()) router.replace('/dashboard')
-  }, [])
-
-  // Restore saved theme
-  useEffect(() => {
-    const saved = localStorage.getItem('nn-theme')
-    if (saved === 'light') setDark(false)
-  }, [])
-
-  const toggle = useCallback((mode: 'dark' | 'light') => {
-    setDark(mode === 'dark')
-    localStorage.setItem('nn-theme', mode)
   }, [])
 
   const dotGrid: React.CSSProperties = {
