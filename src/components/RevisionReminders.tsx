@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import Cookies from 'js-cookie';
 import { apiGetNotes } from '@/lib/api';
 
-const API = process.env.NEXT_PUBLIC_API_URL;
+const API = 'https://notenexus-backend-y20v.onrender.com';
 const mono = "'Space Mono','Courier New',monospace";
 const ibm  = "'IBM Plex Mono','Courier New',monospace";
 const INTERVALS = [1, 3, 7, 14, 30];
