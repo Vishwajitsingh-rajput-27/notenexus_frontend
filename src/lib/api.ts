@@ -76,14 +76,18 @@ export const apiUpvoteNote = async (id: string) => {
 
 // Supports both: apiRevision(content, type) and apiRevision({ type, content, ... })
 export const apiRevision = async (
-  contentOrBody: string | { type: string; content: string; subject?: string; level?: string },
+  contentOrBody: string | { type: string; content?: string; text?: string; subject?: string; level?: string },
   type?: string
 ) => {
-  const body =
-    typeof contentOrBody === 'string'
-      ? { content: contentOrBody, type: type ?? 'flashcards' }
-      : contentOrBody
-  const { data } = await api.post('/ai/revision', body)
+  let body: any
+  if (typeof contentOrBody === 'string') {
+    body = { text: contentOrBody, type: type ?? 'flashcards' }
+  } else {
+    // backend expects 'text' not 'content'
+    const { content, ...rest } = contentOrBody as any
+    body = { text: content || rest.text, ...rest }
+  }
+  const { data } = await api.post('/revision', body)
   return data
 }
 
