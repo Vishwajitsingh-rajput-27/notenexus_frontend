@@ -18,7 +18,7 @@ const TABS: {id:Tab; label:string}[] = [
 
 export default function Profile() {
   const tk = useTheme()
-  const { user: storeUser, token } = useAuthStore()
+  const { user: storeUser, token, updateUser } = useAuthStore()
   const [user, setUser] = useState(storeUser)
   const [tab, setTab] = useState<Tab>('stats')
   const [stats, setStats]     = useState<any>(null)
@@ -34,6 +34,14 @@ export default function Profile() {
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
 
   const inp: React.CSSProperties = { width:'100%', background:tk.inpBg, border:`1px solid ${tk.inpBorder}`, padding:'10px 14px', color:tk.inpText, fontFamily:ibm, fontSize:13, outline:'none', transition:'border-color 0.2s' }
+
+  useEffect(() => {
+    if (storeUser) {
+      setName(storeUser.name || '')
+      setEmail(storeUser.email || '')
+      setUser(storeUser)
+    }
+  }, [storeUser])
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -56,6 +64,7 @@ export default function Profile() {
       const data = await res.json()
       if (!res.ok) { toast.error(data.message); return }
       setUser((u: any) => u ? { ...u, name: data.name, email: data.email } : u)
+      updateUser({ name: data.name, email: data.email })
       toast.success('Profile updated!')
     } catch { toast.error('Could not update profile') }
     finally { setSaving(false) }
