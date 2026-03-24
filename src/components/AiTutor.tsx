@@ -87,7 +87,7 @@ export default function AiTutor({ preloadSubject = '' }: { preloadSubject?: stri
     } catch (err: any) { setError(err.message); }
   };
 
-  const score = quiz ? quiz.filter((q: any, i: number) => quizAnswers[i] === q.answer).length : 0;
+  const score = quiz ? quiz.filter((q: any, i: number) => quizAnswers[i]?.startsWith(q.answer + ')')).length : 0;
 
   const inp: React.CSSProperties = {
     width: '100%', background: t.inpBg, border: `1px solid ${t.inpBorder}`,
@@ -220,26 +220,30 @@ export default function AiTutor({ preloadSubject = '' }: { preloadSubject?: stri
             <div style={{ fontFamily: mono, fontSize: 10, color: t.accent, letterSpacing: '0.12em', marginBottom: 16 }}>// QUIZ — {subject.toUpperCase()}</div>
             {quiz.map((q: any, i: number) => (
               <div key={i} style={{ marginBottom: 16, paddingBottom: 16, borderBottom: i < quiz.length - 1 ? `1px solid ${t.borderSub}` : 'none' }}>
-                <div style={{ fontFamily: ibm, fontSize: 13, color: t.fg, marginBottom: 8, lineHeight: 1.6 }}>{i + 1}. {q.question}</div>
+                <div style={{ fontFamily: ibm, fontSize: 13, color: t.fg, marginBottom: 8, lineHeight: 1.6 }}>{i + 1}. {q.q}</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  {q.options?.map((opt: string) => (
+                  {q.options?.map((opt: string) => {
+                    const isCorrect = opt.startsWith(q.answer + ')');
+                    const isSelected = quizAnswers[i] === opt;
+                    return (
                     <button key={opt} onClick={() => !quizChecked && setQuizAnswers(a => ({ ...a, [i]: opt }))}
                       style={{
                         textAlign: 'left', padding: '8px 12px', fontFamily: ibm, fontSize: 12, cursor: quizChecked ? 'default' : 'pointer',
                         background: quizChecked
-                          ? (opt === q.answer ? 'rgba(74,222,128,0.1)' : quizAnswers[i] === opt ? 'rgba(255,59,59,0.1)' : 'transparent')
-                          : quizAnswers[i] === opt ? t.inpBg : 'transparent',
+                          ? (isCorrect ? 'rgba(74,222,128,0.1)' : isSelected ? 'rgba(255,59,59,0.1)' : 'transparent')
+                          : isSelected ? t.inpBg : 'transparent',
                         border: `1px solid ${quizChecked
-                          ? (opt === q.answer ? '#4ADE80' : quizAnswers[i] === opt ? '#FF3B3B' : t.borderSub)
-                          : quizAnswers[i] === opt ? t.accent : t.borderSub}`,
+                          ? (isCorrect ? '#4ADE80' : isSelected ? '#FF3B3B' : t.borderSub)
+                          : isSelected ? t.accent : t.borderSub}`,
                         color: quizChecked
-                          ? (opt === q.answer ? '#4ADE80' : quizAnswers[i] === opt ? '#FF3B3B' : t.fgDim)
-                          : quizAnswers[i] === opt ? t.accent : t.fgDim,
+                          ? (isCorrect ? '#4ADE80' : isSelected ? '#FF3B3B' : t.fgDim)
+                          : isSelected ? t.accent : t.fgDim,
                         transition: 'all 0.15s',
                       }}>
                       {opt}
                     </button>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             ))}
