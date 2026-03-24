@@ -50,7 +50,7 @@ export const apiDeleteNote = async (id: string) => {
 }
 
 export const apiShareNote = async (id: string, share: boolean | string) => {
-  const { data } = await api.post(`/notes/${id}/share`, { share })
+  const { data } = await api.patch(`/notes/${id}/share`, { shared: share })
   return data
 }
 
