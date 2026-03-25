@@ -91,4 +91,28 @@ export const apiRevision = async (
   return data
 }
 
+// ── Saved Items ────────────────────────────────────────────────────────────
+
+export type SavedItemType = 'mindmap' | 'flashcards' | 'chat' | 'studyplan' | 'examquestions' | 'quiz'
+
+export const apiSaveItem = async (payload: {
+  type: SavedItemType
+  name: string
+  subject?: string
+  data: any
+}) => {
+  const { data } = await api.post('/saved', payload)
+  return data
+}
+
+export const apiGetSavedItems = async (type?: SavedItemType) => {
+  const { data } = await api.get('/saved', { params: type ? { type } : undefined })
+  return data as { items: any[] }
+}
+
+export const apiDeleteSavedItem = async (id: string) => {
+  const { data } = await api.delete(`/saved/${id}`)
+  return data
+}
+
 export default api
