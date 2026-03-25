@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
 import { apiRevision, apiGetNotes, apiGetNote } from '@/lib/api'
 import { useTheme, mono, ibm } from '@/lib/useTheme'
+import { SaveBar, SavedItemsPanel } from '@/components/SavedItemsPanel'
 
 const PALETTE = ['#FBFF48','#4ADE80','#60A5FA','#FF3B3B','#A78BFA','#F97316','#06B6D4']
 const sourceIcon = (t: string) => t==='pdf'?'PDF':t==='image'?'IMG':t==='voice'?'MIC':t==='youtube'?'YT':'TXT'
@@ -45,6 +46,7 @@ export default function MindMap({ preloadContent = '' }: { preloadContent?: stri
   const [notes, setNotes]     = useState<any[]>([])
   const [selectedNote, setSelectedNote] = useState('')
   const [loadedFrom, setLoadedFrom]     = useState('')
+  const [subject, setSubject]           = useState('')
 
   const sel: React.CSSProperties = { width: '100%', background: t.inpBg, border: `1px solid ${t.inpBorder}`, padding: '10px 14px', color: t.inpText, fontFamily: ibm, fontSize: 12, outline: 'none' }
 
@@ -52,10 +54,15 @@ export default function MindMap({ preloadContent = '' }: { preloadContent?: stri
   useEffect(() => { apiGetNotes().then((d: any) => setNotes(d.notes || [])).catch(() => {}) }, [])
 
   const loadFromNote = async (noteId: string) => {
-    if (!noteId) { setText(''); setSelectedNote(''); setLoadedFrom(''); return }
+    if (!noteId) { setText(''); setSelectedNote(''); setLoadedFrom(''); setSubject(''); return }
     setSelectedNote(noteId)
-    try { const d = await apiGetNote(noteId); setText(d.content || ''); setLoadedFrom(`${sourceIcon(d.sourceType)} ${d.title}`); toast.success(`Loaded: ${d.title}`) }
-    catch { toast.error('Could not load note') }
+    try {
+      const d = await apiGetNote(noteId)
+      setText(d.content || '')
+      setSubject(d.subject || '')
+      setLoadedFrom(`${sourceIcon(d.sourceType)} ${d.title}`)
+      toast.success(`Loaded: ${d.title}`)
+    } catch { toast.error('Could not load note') }
   }
 
   const generate = async () => {
@@ -64,6 +71,11 @@ export default function MindMap({ preloadContent = '' }: { preloadContent?: stri
     try { const d = await apiRevision(text, 'mindmap'); setMap(d.result); toast.success('Mind map generated!') }
     catch { toast.error('Generation failed') }
     finally { setLoading(false) }
+  }
+
+  const handleLoadSaved = (item: any) => {
+    setMap(item.data)
+    setSubject(item.subject || '')
   }
 
   return (
@@ -75,6 +87,8 @@ export default function MindMap({ preloadContent = '' }: { preloadContent?: stri
         </h2>
         <p style={{ fontFamily: ibm, fontSize: 12, color: t.fgDim, marginTop: 4 }}>AI generates a visual topic map from your notes.</p>
       </div>
+
+      <SavedItemsPanel type="mindmap" label="MINDMAP" onLoad={handleLoadSaved} />
 
       <div style={{ marginBottom: 16 }}>
         <div style={{ fontFamily: mono, fontSize: 9, color: t.fgMuted, letterSpacing: '0.12em', marginBottom: 6 }}>// LOAD_FROM_NOTE</div>
@@ -122,6 +136,7 @@ export default function MindMap({ preloadContent = '' }: { preloadContent?: stri
                 <Node key={i} node={child} depth={0} color={PALETTE[i % PALETTE.length]} fg={t.fg} />
               ))}
             </div>
+            <SaveBar type="mindmap" data={map} subject={subject} defaultName={map.root || 'Mind Map'} />
           </motion.div>
         )}
       </AnimatePresence>

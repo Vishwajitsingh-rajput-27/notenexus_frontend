@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
 import { apiRevision, apiGetNotes, apiGetNote } from '@/lib/api'
 import { useTheme, mono, ibm } from '@/lib/useTheme'
+import { SaveBar, SavedItemsPanel } from '@/components/SavedItemsPanel'
 
 type Mode = 'flashcards' | 'questions'
 const sourceIcon = (t: string) => t==='pdf'?'PDF':t==='image'?'IMG':t==='voice'?'MIC':t==='youtube'?'YT':'TXT'
@@ -20,6 +21,7 @@ export default function Flashcards({ preloadContent = '' }: { preloadContent?: s
   const [notes, setNotes]     = useState<any[]>([])
   const [selectedNote, setSelectedNote] = useState('')
   const [loadedFrom, setLoadedFrom]     = useState('')
+  const [subject, setSubject]           = useState('')
 
   const sel: React.CSSProperties = { width: '100%', background: t.inpBg, border: `1px solid ${t.inpBorder}`, padding: '10px 14px', color: t.inpText, fontFamily: ibm, fontSize: 12, outline: 'none' }
 
@@ -27,18 +29,45 @@ export default function Flashcards({ preloadContent = '' }: { preloadContent?: s
   useEffect(() => { apiGetNotes().then((d: any) => setNotes(d.notes || [])).catch(() => {}) }, [])
 
   const loadFromNote = async (noteId: string) => {
-    if (!noteId) { setText(''); setSelectedNote(''); setLoadedFrom(''); return }
+    if (!noteId) { setText(''); setSelectedNote(''); setLoadedFrom(''); setSubject(''); return }
     setSelectedNote(noteId)
-    try { const d = await apiGetNote(noteId); setText(d.content || ''); setLoadedFrom(`${sourceIcon(d.sourceType)} ${d.title}`); toast.success(`Loaded: ${d.title}`) }
-    catch { toast.error('Could not load note') }
+    try {
+      const d = await apiGetNote(noteId)
+      setText(d.content || '')
+      setSubject(d.subject || '')
+      setLoadedFrom(`${sourceIcon(d.sourceType)} ${d.title}`)
+      toast.success(`Loaded: ${d.title}`)
+    } catch { toast.error('Could not load note') }
   }
 
   const generate = async () => {
     if (!text.trim()) { toast.error('Paste notes or load a saved note'); return }
     setLoading(true)
-    try { const d = await apiRevision(text, mode); setCards(Array.isArray(d.result) ? d.result : []); setIdx(0); setFlipped(false); setShowAns(false); toast.success(`${d.result?.length || 0} ${mode} generated!`) }
+    try {
+      const d = await apiRevision(text, mode)
+      setCards(Array.isArray(d.result) ? d.result : [])
+      setIdx(0); setFlipped(false); setShowAns(false)
+      toast.success(`${d.result?.length || 0} ${mode} generated!`)
+    }
     catch { toast.error('Generation failed') }
     finally { setLoading(false) }
+  }
+
+  /** Load saved flashcard set */
+  const handleLoadSaved = (item: any) => {
+    const { cards: savedCards, mode: savedMode } = item.data
+    if (Array.isArray(savedCards)) { setCards(savedCards); setIdx(0); setFlipped(false); setShowAns(false) }
+    if (savedMode) setMode(savedMode)
+    setSubject(item.subject || '')
+  }
+
+  /** Load saved practice Q&A set */
+  const handleLoadSavedQA = (item: any) => {
+    const { questions: savedQs, cards: savedCards } = item.data
+    const loaded = savedQs ?? savedCards
+    if (Array.isArray(loaded)) { setCards(loaded); setIdx(0); setFlipped(false); setShowAns(false) }
+    setMode('questions')
+    setSubject(item.subject || '')
   }
 
   const next = () => { setIdx(i => Math.min(cards.length-1,i+1)); setFlipped(false); setShowAns(false) }
@@ -53,6 +82,9 @@ export default function Flashcards({ preloadContent = '' }: { preloadContent?: s
         </h2>
         <p style={{ fontFamily: ibm, fontSize: 12, color: t.fgDim, marginTop: 4 }}>Generate flashcards or Q&A from any uploaded note.</p>
       </div>
+
+      <SavedItemsPanel type="flashcards" label="FLASHCARD" onLoad={handleLoadSaved} />
+      <SavedItemsPanel type="quiz" onLoad={handleLoadSavedQA} />
 
       <div style={{ display: 'flex', gap: 4, marginBottom: 20 }}>
         {(['flashcards','questions'] as Mode[]).map(m => (
@@ -142,6 +174,15 @@ export default function Flashcards({ preloadContent = '' }: { preloadContent?: s
               <button onClick={prev} disabled={idx===0} style={{ flex: 1, fontFamily: mono, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', padding: '11px', border: `1px solid ${t.border}`, background: 'none', color: idx===0 ? t.fgMuted : t.fg, cursor: idx===0 ? 'default' : 'pointer', transition: 'all 0.18s' }}>← PREV</button>
               <button onClick={next} disabled={idx===cards.length-1} style={{ flex: 1, fontFamily: mono, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', padding: '11px', border: '1px solid #4ADE80', background: idx===cards.length-1 ? 'transparent' : 'rgba(74,222,128,0.1)', color: idx===cards.length-1 ? t.fgMuted : '#4ADE80', cursor: idx===cards.length-1 ? 'default' : 'pointer', transition: 'all 0.18s' }}>NEXT →</button>
             </div>
+
+            {/* ── Save bar ── */}
+            <SaveBar
+              type={mode === 'questions' ? 'quiz' : 'flashcards'}
+              data={mode === 'questions' ? { questions: cards, subject, level: '' } : { cards, mode }}
+              subject={subject}
+              defaultName={`${mode === 'flashcards' ? 'Flashcards' : 'Q&A'} – ${subject || 'Set'}`}
+            />
+
             <button onClick={() => { setCards([]); setIdx(0); setFlipped(false) }} style={{ width: '100%', marginTop: 8, fontFamily: mono, fontSize: 10, color: t.fgMuted, background: 'none', border: 'none', cursor: 'pointer', padding: '8px', letterSpacing: '0.08em', transition: 'color 0.18s' }}
               onMouseEnter={e => (e.currentTarget.style.color = t.fg)}
               onMouseLeave={e => (e.currentTarget.style.color = t.fgMuted)}>
