@@ -4,6 +4,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Cookies from 'js-cookie';
 import { apiGetNotes } from '@/lib/api';
 import { useTheme, mono, ibm } from '@/lib/useTheme';
+import { SavedItemsPanel, SaveBar } from '@/components/SavedItemsPanel';
+import { apiSaveItem } from '@/lib/api';
+import toast from 'react-hot-toast';
 
 const API = 'https://notenexus-backend-y20v.onrender.com';
 const LEVELS = ['beginner', 'intermediate', 'advanced'];
@@ -35,6 +38,15 @@ export default function AiTutor({ preloadSubject = '' }: { preloadSubject?: stri
   const [showNotes, setShowNotes]   = useState(false);
   const [loadedFrom, setLoadedFrom] = useState('');
 
+  // Save chat state
+  const [saveName, setSaveName]   = useState('');
+  const [showSave, setShowSave]   = useState(false);
+  const [saving, setSaving]       = useState(false);
+  const [savedChat, setSavedChat] = useState(false);
+
+  // Quiz save state
+  const [savedQuiz, setSavedQuiz] = useState(false);
+
   useEffect(() => { if (preloadSubject) setSubject(preloadSubject); }, [preloadSubject]);
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [history, loading]);
   useEffect(() => {
@@ -42,10 +54,46 @@ export default function AiTutor({ preloadSubject = '' }: { preloadSubject?: stri
     apiGetNotes().then((d: any) => setNotes(d.notes || [])).catch(() => {}).finally(() => setLoadingNotes(false));
   }, []);
 
+  // Reset save state when history changes
+  useEffect(() => { setSavedChat(false); }, [history]);
+  // Reset quiz saved state when quiz changes
+  useEffect(() => { setSavedQuiz(false); }, [quiz]);
+
   const loadFromNote = (note: any) => {
     setSubject(note.subject || note.title || '');
     setLoadedFrom(`${sourceIcon(note.sourceType)} ${note.title}`);
     setShowNotes(false);
+  };
+
+  /** Load a previously saved chat session */
+  const handleLoadSaved = (item: any) => {
+    const { history: h, subject: s, level: l } = item.data;
+    if (h) setHistory(h);
+    if (s) setSubject(s);
+    if (l) setLevel(l);
+    setStarted(true);
+    setQuiz(null);
+  };
+
+  /** Load a previously saved quiz */
+  const handleLoadSavedQuiz = (item: any) => {
+    const { questions, subject: s, level: l } = item.data;
+    if (questions) { setQuiz(questions); setQuizAnswers({}); setQuizChecked(false); }
+    if (s) setSubject(s);
+    if (l) setLevel(l);
+    setStarted(true);
+  };
+
+  const saveChat = async () => {
+    if (!saveName.trim()) { toast.error('Give this chat a name'); return; }
+    setSaving(true);
+    try {
+      await apiSaveItem({ type: 'chat', name: saveName.trim(), subject, data: { history, subject, level } });
+      toast.success('Chat saved!');
+      setSavedChat(true);
+      setShowSave(false);
+    } catch { toast.error('Could not save chat'); }
+    finally { setSaving(false); }
   };
 
   const sendMessage = async (msg = input) => {
@@ -103,6 +151,12 @@ export default function AiTutor({ preloadSubject = '' }: { preloadSubject?: stri
         </h2>
         <p style={{ fontFamily: ibm, fontSize: 12, color: t.fgDim, marginTop: 4 }}>Explains clearly, checks understanding, adapts to your level.</p>
       </div>
+
+      {/* ── Saved chat sessions ── */}
+      <SavedItemsPanel type="chat" label="CHAT" onLoad={handleLoadSaved} />
+
+      {/* ── Saved quizzes ── */}
+      <SavedItemsPanel type="quiz" onLoad={handleLoadSavedQuiz} />
 
       <div style={{ border: `1px solid ${t.border}`, padding: 28, background: t.bg3, display: 'flex', flexDirection: 'column', gap: 20 }}>
         <div>
@@ -167,21 +221,59 @@ export default function AiTutor({ preloadSubject = '' }: { preloadSubject?: stri
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', maxWidth: 720, height: 'calc(100vh - 160px)' }}>
+      {/* ── Header ── */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, paddingBottom: 16, borderBottom: `1px solid ${t.borderSub}`, marginBottom: 16, flexWrap: 'wrap' }}>
-        <button onClick={() => { setStarted(false); setHistory([]); setQuiz(null) }}
+        <button onClick={() => { setStarted(false); setHistory([]); setQuiz(null); setShowSave(false) }}
           style={{ fontFamily: mono, fontSize: 10, color: t.fgDim, background: 'none', border: 'none', cursor: 'pointer', letterSpacing: '0.08em', transition: 'color 0.18s' }}
           onMouseEnter={e => (e.currentTarget.style.color = t.fg)}
           onMouseLeave={e => (e.currentTarget.style.color = t.fgDim)}>← BACK</button>
         <div style={{ fontFamily: mono, fontSize: 12, fontWeight: 700, color: '#FF3B3B', letterSpacing: '0.06em' }}>{subject.toUpperCase()}</div>
         <div style={{ fontFamily: mono, fontSize: 9, border: '1px solid rgba(255,59,59,0.3)', color: 'rgba(255,59,59,0.7)', padding: '2px 8px', letterSpacing: '0.1em' }}>{level.toUpperCase()}</div>
-        <button onClick={fetchQuiz}
-          style={{ fontFamily: mono, fontSize: 9, letterSpacing: '0.08em', padding: '5px 12px', border: `1px solid ${t.border}`, color: t.fgDim, background: 'none', cursor: 'pointer', marginLeft: 'auto', transition: 'all 0.18s' }}
-          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = t.accent; (e.currentTarget as HTMLElement).style.color = t.accent }}
-          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = t.border; (e.currentTarget as HTMLElement).style.color = t.fgDim }}>
-          GENERATE_QUIZ
-        </button>
+
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
+          {/* Save chat button */}
+          {history.length > 0 && (
+            <button onClick={() => { setShowSave(v => !v); if (!saveName) setSaveName(subject || 'Chat') }}
+              style={{ fontFamily: mono, fontSize: 9, letterSpacing: '0.08em', padding: '5px 12px', border: `1px solid ${savedChat ? '#4ADE80' : t.border}`, color: savedChat ? '#4ADE80' : t.fgDim, background: 'none', cursor: 'pointer', transition: 'all 0.18s' }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = '#4ADE80'; (e.currentTarget as HTMLElement).style.color = '#4ADE80' }}
+              onMouseLeave={e => { if (!savedChat) { (e.currentTarget as HTMLElement).style.borderColor = t.border; (e.currentTarget as HTMLElement).style.color = t.fgDim } }}>
+              {savedChat ? '✓ SAVED' : '↓ SAVE_CHAT'}
+            </button>
+          )}
+          <button onClick={fetchQuiz}
+            style={{ fontFamily: mono, fontSize: 9, letterSpacing: '0.08em', padding: '5px 12px', border: `1px solid ${t.border}`, color: t.fgDim, background: 'none', cursor: 'pointer', transition: 'all 0.18s' }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = t.accent; (e.currentTarget as HTMLElement).style.color = t.accent }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = t.border; (e.currentTarget as HTMLElement).style.color = t.fgDim }}>
+            GENERATE_QUIZ
+          </button>
+        </div>
       </div>
 
+      {/* ── Inline save panel ── */}
+      <AnimatePresence>
+        {showSave && (
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+            style={{ overflow: 'hidden', marginBottom: 12 }}>
+            <div style={{ display: 'flex', gap: 8, padding: '10px 12px', border: `1px solid ${t.dark ? 'rgba(74,222,128,0.25)' : 'rgba(74,222,128,0.35)'}`, background: t.dark ? 'rgba(74,222,128,0.04)' : 'rgba(74,222,128,0.08)' }}>
+              <span style={{ fontFamily: mono, fontSize: 9, color: '#4ADE80', letterSpacing: '0.1em', whiteSpace: 'nowrap', alignSelf: 'center' }}>NAME</span>
+              <input value={saveName} onChange={e => setSaveName(e.target.value)}
+                placeholder="Name this chat session…"
+                style={{ flex: 1, background: t.inpBg, border: `1px solid ${t.inpBorder}`, padding: '7px 12px', color: t.inpText, fontFamily: ibm, fontSize: 12, outline: 'none' }}
+                onFocus={e => e.currentTarget.style.borderColor = '#4ADE80'}
+                onBlur={e  => e.currentTarget.style.borderColor = t.inpBorder}
+                onKeyDown={e => e.key === 'Enter' && saveChat()} />
+              <button onClick={saveChat} disabled={saving || !saveName.trim()}
+                style={{ fontFamily: mono, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', padding: '7px 16px', border: '1px solid #4ADE80', background: '#4ADE80', color: '#000', cursor: saving ? 'default' : 'pointer', opacity: !saveName.trim() ? 0.45 : 1 }}>
+                {saving ? '…' : '↓ SAVE'}
+              </button>
+              <button onClick={() => setShowSave(false)}
+                style={{ fontFamily: mono, fontSize: 12, color: t.fgMuted, background: 'none', border: 'none', cursor: 'pointer', padding: '0 6px' }}>×</button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Chat history ── */}
       <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16 }}>
         {history.length === 0 && (
           <div style={{ fontFamily: ibm, fontSize: 13, color: t.fgMuted, padding: '20px 0' }}>
@@ -251,6 +343,13 @@ export default function AiTutor({ preloadSubject = '' }: { preloadSubject?: stri
               ? <button onClick={() => setQuizChecked(true)} style={{ fontFamily: mono, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', padding: '10px 20px', background: t.accent, color: '#000', border: 'none', cursor: 'pointer' }}>CHECK_ANSWERS</button>
               : <div style={{ fontFamily: mono, fontSize: 13, fontWeight: 700, color: score >= quiz.length * 0.7 ? '#4ADE80' : '#FF3B3B' }}>SCORE: {score}/{quiz.length}</div>
             }
+            {/* Save quiz */}
+            <SaveBar
+              type="quiz"
+              data={{ questions: quiz, subject, level }}
+              subject={subject}
+              defaultName={`${subject} Quiz`}
+            />
           </div>
         )}
         <div ref={bottomRef} />

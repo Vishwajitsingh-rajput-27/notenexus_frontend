@@ -4,10 +4,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Cookies from 'js-cookie';
 import { apiGetNotes } from '@/lib/api';
 import { useTheme, mono, ibm } from '@/lib/useTheme';
+import { SaveBar, SavedItemsPanel } from '@/components/SavedItemsPanel';
 
 const API = 'https://notenexus-backend-y20v.onrender.com';
 const srcIcon = (t:string) => t==='pdf'?'PDF':t==='image'?'IMG':t==='voice'?'MIC':t==='youtube'?'YT':'TXT';
-const typeColors: Record<string,string> = { study:'#60A5FA', revision:'#A78BFA', practice:'#4ADE80' };
+const sessionTypeColor: Record<string,string> = { study:'#60A5FA', revision:'#A78BFA', practice:'#4ADE80' };
 
 export default function StudyPlanner({ preloadSubject = '' }: { preloadSubject?: string }) {
   const t = useTheme();
@@ -31,6 +32,16 @@ export default function StudyPlanner({ preloadSubject = '' }: { preloadSubject?:
     if (note.keywords?.length) setWeakTopics(note.keywords.slice(0,3).join(', '));
     setLoadedFrom(`${srcIcon(note.sourceType)} ${note.title}`);
     setShowNotes(false); setPlan(null);
+  };
+
+  /** Load a previously saved study plan */
+  const handleLoadSaved = (item: any) => {
+    const savedPlan = item.data?.plan ?? item.data;
+    setPlan(savedPlan);
+    setExpandedDay(1);
+    setError('');
+    // Restore subjects if stored
+    if (item.subject) setSubjects(item.subject);
   };
 
   const generate = async () => {
@@ -67,13 +78,18 @@ export default function StudyPlanner({ preloadSubject = '' }: { preloadSubject?:
         <p style={{ fontFamily: ibm, fontSize: 12, color: t.fgDim, marginTop: 4 }}>AI builds a personalized revision schedule for your exam.</p>
       </div>
 
-      <div style={{ border: `1px solid ${t.border}`, padding: 24, background: t.bg3, display: 'flex', flexDirection: 'column', gap: 18, marginBottom: 24 }}>
+      {/* ── Saved plans panel ── */}
+      <SavedItemsPanel type="studyplan" onLoad={handleLoadSaved} />
+
+      <div style={{ border: `1px solid ${t.border}`, padding: 24, background: t.bg3,
+                    display: 'flex', flexDirection: 'column', gap: 18, marginBottom: 24 }}>
         {/* Note selector */}
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
             <div style={{ fontFamily: mono, fontSize: 9, color: t.fgMuted, letterSpacing: '0.12em' }}>// LOAD_FROM_NOTE</div>
             <button onClick={() => setShowNotes(v => !v)}
-              style={{ fontFamily: mono, fontSize: 9, letterSpacing: '0.08em', padding: '4px 10px', border: `1px solid ${t.border}`, color: t.fgDim, background: 'none', cursor: 'pointer', transition: 'all 0.18s' }}
+              style={{ fontFamily: mono, fontSize: 9, letterSpacing: '0.08em', padding: '4px 10px',
+                       border: `1px solid ${t.border}`, color: t.fgDim, background: 'none', cursor: 'pointer', transition: 'all 0.18s' }}
               onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = '#A78BFA'; (e.currentTarget as HTMLElement).style.color = '#A78BFA' }}
               onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = t.border; (e.currentTarget as HTMLElement).style.color = t.fgDim }}>
               SELECT_NOTE {showNotes ? '▲' : '▼'}
@@ -83,7 +99,8 @@ export default function StudyPlanner({ preloadSubject = '' }: { preloadSubject?:
             <div style={{ border: `1px solid ${t.borderSub}`, maxHeight: 160, overflowY: 'auto', background: t.bg2, marginBottom: 8 }}>
               {notes.map(note => (
                 <button key={note._id} onClick={() => loadFromNote(note)}
-                  style={{ width: '100%', textAlign: 'left', padding: '9px 14px', background: 'none', border: 'none', borderBottom: `1px solid ${t.borderSub}`, cursor: 'pointer', transition: 'background 0.15s' }}
+                  style={{ width: '100%', textAlign: 'left', padding: '9px 14px', background: 'none',
+                           border: 'none', borderBottom: `1px solid ${t.borderSub}`, cursor: 'pointer', transition: 'background 0.15s' }}
                   onMouseEnter={e => (e.currentTarget.style.background = t.inpBg)}
                   onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
                   <div style={{ fontFamily: ibm, fontSize: 12, color: t.fg, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{note.title}</div>
@@ -130,21 +147,35 @@ export default function StudyPlanner({ preloadSubject = '' }: { preloadSubject?:
         </div>
       </div>
 
-      {error && <div style={{ fontFamily: ibm, fontSize: 12, color: '#FF3B3B', padding: '8px 12px', border: '1px solid rgba(255,59,59,0.25)', marginBottom: 16 }}>{error}</div>}
+      {error && (
+        <div style={{ fontFamily: ibm, fontSize: 12, color: '#FF3B3B',
+                      padding: '8px 12px', border: '1px solid rgba(255,59,59,0.25)',
+                      background: t.dark ? 'rgba(255,59,59,0.05)' : 'rgba(255,59,59,0.07)',
+                      marginBottom: 16 }}>
+          {error}
+        </div>
+      )}
 
       <motion.button onClick={generate} disabled={loading} whileHover={{ opacity: 0.85 }} whileTap={{ scale: 0.97 }}
-        style={{ width: '100%', background: '#A78BFA', color: '#000', border: 'none', padding: '13px', fontFamily: mono, fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', opacity: loading ? 0.6 : 1, cursor: 'pointer', marginBottom: 28 }}>
+        style={{ width: '100%', background: '#A78BFA', color: '#000', border: 'none', padding: '13px',
+                 fontFamily: mono, fontSize: 12, fontWeight: 700, letterSpacing: '0.1em',
+                 opacity: loading ? 0.6 : 1, cursor: 'pointer', marginBottom: 28 }}>
         {loading ? 'GENERATING PLAN...' : 'GENERATE_STUDY_PLAN →'}
       </motion.button>
 
       {plan && (
         <div>
           {plan.summary && (
-            <div style={{ border: '1px solid rgba(167,139,250,0.3)', padding: 16, marginBottom: 20, background: t.inpBg }}>
+            <div style={{ border: '1px solid rgba(167,139,250,0.3)', padding: 16, marginBottom: 20,
+                          background: t.dark ? 'rgba(167,139,250,0.06)' : 'rgba(167,139,250,0.08)' }}>
               <div style={{ fontFamily: mono, fontSize: 9, color: '#A78BFA', letterSpacing: '0.12em', marginBottom: 8 }}>// PLAN_SUMMARY</div>
               <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 10 }}>
                 {[['DAYS', plan.summary.totalDays],['HOURS', plan.summary.totalHours],['SUBJECTS', plan.summary.subjects?.join(', ')]].map(([l,v]) => (
-                  <div key={l as string} style={{ fontFamily: mono, fontSize: 9, padding: '4px 12px', border: `1px solid ${t.border}`, color: t.fgDim, letterSpacing: '0.08em' }}>{l}: {v}</div>
+                  <div key={l as string} style={{ fontFamily: mono, fontSize: 9, padding: '4px 12px',
+                                                  border: `1px solid ${t.border}`, color: t.fgDim, letterSpacing: '0.08em',
+                                                  background: t.dark ? t.bg2 : t.bg }}>
+                    {l}: {v}
+                  </div>
                 ))}
               </div>
               {plan.summary.strategy && <div style={{ fontFamily: ibm, fontSize: 12, color: t.fgDim, lineHeight: 1.7 }}>{plan.summary.strategy}</div>}
@@ -153,9 +184,14 @@ export default function StudyPlanner({ preloadSubject = '' }: { preloadSubject?:
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 1, background: t.cardBg }}>
             {plan.dailyPlan?.map((day: any) => (
-              <div key={day.day} style={{ background: t.bg2, borderLeft: expandedDay===day.day ? '2px solid #A78BFA' : '2px solid transparent', transition: 'border-color 0.18s' }}>
+              <div key={day.day} style={{
+                background: t.bg2,
+                borderLeft: expandedDay===day.day ? '2px solid #A78BFA' : `2px solid ${t.border}`,
+                transition: 'border-color 0.18s',
+              }}>
                 <button onClick={() => setExpandedDay(expandedDay===day.day ? null : day.day)}
-                  style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 14, padding: '13px 16px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 14,
+                           padding: '13px 16px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
                   <span style={{ fontFamily: mono, fontSize: 10, color: '#A78BFA', letterSpacing: '0.08em', flexShrink: 0 }}>DAY_{day.day}</span>
                   <span style={{ fontFamily: ibm, fontSize: 13, color: t.fg, flex: 1 }}>{day.date}</span>
                   <span style={{ fontFamily: mono, fontSize: 9, color: t.fgMuted, letterSpacing: '0.08em' }}>{day.sessions?.length||0} SESSIONS</span>
@@ -166,11 +202,12 @@ export default function StudyPlanner({ preloadSubject = '' }: { preloadSubject?:
                     <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} style={{ overflow: 'hidden' }}>
                       <div style={{ padding: '0 16px 16px 16px' }}>
                         {day.sessions?.map((s: any, si: number) => (
-                          <div key={si} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: '10px 0', borderBottom: si<day.sessions.length-1 ? `1px solid ${t.borderSub}` : 'none' }}>
-                            <div style={{ width: 3, height: 3, borderRadius: '50%', background: typeColors[s.type]||t.fgMuted, marginTop: 8, flexShrink: 0 }} />
+                          <div key={si} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: '10px 0',
+                                                 borderBottom: si<day.sessions.length-1 ? `1px solid ${t.borderSub}` : 'none' }}>
+                            <div style={{ width: 6, height: 6, borderRadius: '50%', background: sessionTypeColor[s.type]||t.fgMuted, marginTop: 8, flexShrink: 0 }} />
                             <div style={{ flex: 1 }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                                <span style={{ fontFamily: mono, fontSize: 9, color: typeColors[s.type]||t.fgDim, letterSpacing: '0.08em' }}>{s.type?.toUpperCase()}</span>
+                                <span style={{ fontFamily: mono, fontSize: 9, color: sessionTypeColor[s.type]||t.fgDim, letterSpacing: '0.08em' }}>{s.type?.toUpperCase()}</span>
                                 <span style={{ fontFamily: mono, fontSize: 9, color: t.fgMuted }}>{s.duration}min</span>
                               </div>
                               <div style={{ fontFamily: ibm, fontSize: 13, color: t.fg, marginBottom: 3 }}>{s.subject}</div>
@@ -187,6 +224,14 @@ export default function StudyPlanner({ preloadSubject = '' }: { preloadSubject?:
               </div>
             ))}
           </div>
+
+          {/* ── Save bar ── */}
+          <SaveBar
+            type="studyplan"
+            data={{ plan }}
+            subject={subjects.split(',')[0]?.trim() || ''}
+            defaultName={`Study Plan – ${subjects.split(',')[0]?.trim() || 'Plan'}`}
+          />
         </div>
       )}
     </div>
