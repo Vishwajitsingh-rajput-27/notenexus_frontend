@@ -8,15 +8,15 @@ const API = 'https://notenexus-backend-y20v.onrender.com'
 const COMMAND_SECTIONS = [
   {
     id: 'notes',
-    label: '// NOTES_&_SAVED_COMMANDS',
+    label: '// NOTES_COMMANDS',
     color: '#79c0ff',
     badge: 'requires linked account',
     commands: [
-      { cmd: 'notes',                 desc: 'List your 20 most recent notes' },
-      { cmd: 'notes: Biology',        desc: 'Filter notes by subject name' },
-      { cmd: 'saved',                 desc: 'List all saved items (flashcards, plans, mind maps, exam questions…)' },
-      { cmd: 'saved: flashcards',     desc: 'Filter by type — flashcards / examquestions / mindmap / studyplan / quiz' },
-      { cmd: '1  (or any number)',    desc: 'View item #1 from the last list — works for notes and saved items' },
+      { cmd: 'notes',                      desc: 'List your 20 most recent notes' },
+      { cmd: 'notes: Biology',             desc: 'Filter notes by subject' },
+      { cmd: 'saved',                      desc: 'List all saved items (flashcards, plans, mind maps…)' },
+      { cmd: 'saved: flashcards',          desc: 'Filter by type — flashcards / examquestions / mindmap / studyplan / quiz' },
+      { cmd: '1',                          desc: 'View item #1 from the last list — works for notes and saved items' },
     ],
   },
   {
@@ -25,12 +25,12 @@ const COMMAND_SECTIONS = [
     color: '#c678dd',
     badge: 'requires linked account',
     commands: [
-      { cmd: 'remind me: Calculus | Maths | today 18:00',              desc: 'One-shot reminder — fires once today at that time' },
-      { cmd: 'remind me: Cell bio | Biology | every 3 days 09:00',     desc: 'Repeating reminder every N days at a set time' },
-      { cmd: 'remind me: Vocab | English | every 30 minutes',          desc: 'Sprint mode — fires every N minutes' },
-      { cmd: 'remind me: Past papers | Physics | on 2026-05-01 08:00', desc: 'One-shot on a specific future date' },
-      { cmd: 'reminders',                                               desc: 'List all your active reminders (numbered)' },
-      { cmd: 'cancel reminder 2',                                       desc: 'Cancel reminder #2 from the list' },
+      { cmd: 'remind me: Calculus | Maths | today 18:00',           desc: 'One-shot reminder today at a specific time' },
+      { cmd: 'remind me: Cell biology | Biology | every 3 days 09:00', desc: 'Repeating reminder every N days' },
+      { cmd: 'remind me: Vocab | English | every 30 minutes',       desc: 'Sprint mode — repeat every N minutes' },
+      { cmd: 'remind me: Past papers | Physics | on 2026-05-01 08:00', desc: 'One-shot on a specific date' },
+      { cmd: 'reminders',                                            desc: 'List all your active reminders' },
+      { cmd: 'cancel reminder 2',                                    desc: 'Cancel reminder #2 from the list' },
     ],
   },
   {
@@ -126,7 +126,7 @@ export default function WhatsAppBot() {
   }
 
   const card: React.CSSProperties = { background: t.bg3, border: `1px solid ${t.border}` }
-  const btn:  React.CSSProperties = { fontFamily: mono, fontSize: 11, letterSpacing: '0.08em', fontWeight: 700, padding: '8px 16px', border: 'none', cursor: 'pointer' }
+  const btn: React.CSSProperties  = { fontFamily: mono, fontSize: 11, letterSpacing: '0.08em', fontWeight: 700, padding: '8px 16px', border: 'none', cursor: 'pointer' }
 
   return (
     <div style={{ maxWidth: 700 }}>
@@ -153,7 +153,7 @@ export default function WhatsAppBot() {
         )}
       </div>
 
-      {/* Setup guide — only if not configured */}
+      {/* Setup guide */}
       {!status?.configured && (
         <div style={{ ...card, marginBottom: 24 }}>
           <div style={{ padding: '12px 18px', borderBottom: `1px solid ${t.border}` }}>
@@ -189,7 +189,7 @@ export default function WhatsAppBot() {
                 Linked to <strong>{linkStatus.phone}</strong>
               </div>
               <div style={{ fontFamily: ibm, fontSize: 12, color: t.fgDim, marginBottom: 16, lineHeight: 1.6 }}>
-                Your account is connected. All commands below are available from WhatsApp.
+                Your account is connected. You can now use all commands below from WhatsApp.
               </div>
               <button style={{ ...btn, background: 'rgba(248,113,113,0.1)', color: '#f87171', border: '1px solid rgba(248,113,113,0.3)' }} onClick={unlink} disabled={unlinkLoading}>
                 {unlinkLoading ? 'UNLINKING...' : 'UNLINK_ACCOUNT'}
@@ -232,28 +232,29 @@ export default function WhatsAppBot() {
       </div>
 
       {/* Command sections — accordion */}
-      <div style={{ fontFamily: mono, fontSize: 10, color: t.fgDim, letterSpacing: '0.12em', marginBottom: 12 }}>// ALL_COMMANDS</div>
       {COMMAND_SECTIONS.map(section => {
         const open = openSection === section.id
         return (
-          <div key={section.id} style={{ ...card, marginBottom: 10 }}>
+          <div key={section.id} style={{ ...card, marginBottom: 12 }}>
             <div
               onClick={() => setOpenSection(open ? null : section.id)}
               style={{ padding: '12px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', userSelect: 'none' }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', gap: 8 } as any}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <span style={{ fontFamily: mono, fontSize: 10, color: section.color, letterSpacing: '0.12em', fontWeight: 700 }}>{section.label}</span>
-                <span style={{ fontFamily: mono, fontSize: 9, color: t.fgDim, background: t.bg, border: `1px solid ${t.border}`, padding: '2px 8px', letterSpacing: '0.06em' }}>{section.badge}</span>
+                <span style={{ fontFamily: mono, fontSize: 9, color: t.fgDim, background: t.bg, border: `1px solid ${t.border}`, padding: '2px 8px', letterSpacing: '0.08em' }}>{section.badge}</span>
               </div>
-              <span style={{ fontFamily: mono, fontSize: 11, color: t.fgDim, marginLeft: 12 }}>{open ? '▲' : '▼'}</span>
+              <span style={{ fontFamily: mono, fontSize: 12, color: t.fgDim }}>{open ? '▲' : '▼'}</span>
             </div>
 
             {open && (
               <div style={{ borderTop: `1px solid ${t.border}` }}>
                 {section.commands.map((c, i) => (
-                  <div key={i} style={{ display: 'flex', flexDirection: 'column', padding: '12px 18px', borderBottom: i < section.commands.length - 1 ? `1px solid ${t.border}` : 'none', gap: 4 }}>
-                    <code style={{ fontFamily: mono, fontSize: 11, color: section.color, wordBreak: 'break-all', lineHeight: 1.5 }}>{c.cmd}</code>
-                    <span style={{ fontFamily: ibm, fontSize: 12, color: t.fgDim, lineHeight: 1.5 }}>{c.desc}</span>
+                  <div key={i} style={{ display: 'flex', gap: 0, borderBottom: i < section.commands.length - 1 ? `1px solid ${t.border}` : 'none' }}>
+                    <code style={{ fontFamily: mono, fontSize: 11, color: section.color, flexShrink: 0, padding: '12px 18px', borderRight: `1px solid ${t.border}`, minWidth: 260, wordBreak: 'break-all', lineHeight: 1.5 }}>
+                      {c.cmd}
+                    </code>
+                    <span style={{ fontFamily: ibm, fontSize: 12, color: t.fgDim, padding: '12px 16px', lineHeight: 1.6 }}>{c.desc}</span>
                   </div>
                 ))}
               </div>
@@ -269,7 +270,6 @@ export default function WhatsAppBot() {
           <code style={{ fontFamily: mono, fontSize: 11, color: t.accent, wordBreak: 'break-all' }}>{status.webhookUrl}</code>
         </div>
       )}
-
     </div>
   )
 }
